@@ -1,5 +1,8 @@
 import tkinter as tk
-import math
+import math, Crypto, ast, sys, base64
+from Crypto.PublicKey import RSA
+from Crypto import Random
+from Crypto.Cipher import PKCS1_OAEP
 
 #creating a "dictionary"/button customization
 button_config = {
@@ -21,7 +24,13 @@ cnt = 0
 class Calculator:
     #creating construct (parameter master = base window)
     def __init__(self, master):
-        
+        try:
+            self.privatekey, self.publickey = self.rsakeys()
+            self.encrypt(self.publickey, b'ABDD2F81B2C3EADBC347C1')
+        except:
+            sys.exit()
+            print("RSA KEY Invalid") 
+
         self.master = master
 
         #creating frame - Display Frame
@@ -42,8 +51,31 @@ class Calculator:
         self.convert = tk.Button(self.displayFrame, button_config, width=3, height = 0, text = "DEG", bg ="#e35124", command = self.degreesRadians)
         self.convert.grid(row = 0, column = 1)
 
-
         self.createButtons()
+
+    def rsakeys(self):  
+        length=1024  
+        privatekey = RSA.generate(length, Random.new().read)  
+        publickey = privatekey.publickey()  
+        return privatekey, publickey
+
+    def encrypt(self, rsa_publickey, plain_text):
+        encryptor = PKCS1_OAEP.new(rsa_publickey)
+        encrypted = encryptor.encrypt(b'%s' % plain_text)
+        b64cipher=base64.b64encode(encrypted)
+        return b64cipher
+
+    def decrypt(self, rsa_privatekey, b64cipher):
+        decoded_ciphertext = base64.b64decode(b64cipher)
+        decryptor = PKCS1_OAEP.new(rsa_privatekey)
+        decrypted = decryptor.decrypt(ast.literal_eval(str(decoded_ciphertext)))
+        return decrypted
+    
+    def sign(self, privatekey,data):
+        return base64.b64encode(str((privatekey.sign(data,''))[0]).encode())
+
+    def verify(self, publickey,data,sign):
+        return publickey.verify(data,(int(base64.b64decode(sign)),))
 
     #creating buttons in the calculator i a 2d matrix
     def createButtons(self):
@@ -124,10 +156,7 @@ class Calculator:
             inversa_deg = 1
             self.convert['text'] = "DEG"
             cnt = 0
-
-
-
-    
+   
 
 
 
@@ -138,7 +167,7 @@ Calculator(object)
 
 #keep window loop
 object.mainloop()
-
+# pip install auto-py-to-exe   / auto-py-to-exe
 
 
 
